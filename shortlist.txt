@@ -1,0 +1,52 @@
+C:\Program Files\MDPREI\spki\scs.exe
+C:\Program Files\MDPREI\spki\scsref.exe
+C:\Program Files\MDPREI\spki\spki1utl.exe
+C:\Program Files\MDPREI\spki\supdatefromdisk.dll
+C:\Program Files\MDPREI\spki\suserdisk2ra.dll
+C:\Program Files\MDPREI\spki\suserpost2ra.dll
+C:\Program Files\Validata\VDCSP\etsdkx64.dll
+C:\Program Files\Validata\VDCSP\hashfile.exe
+C:\Program Files\Validata\VDCSP\testcsp.exe
+C:\Program Files\Validata\VDCSP\vdcsp.dll
+C:\Program Files\Validata\VDCSP\vdcsp_cfg.exe
+C:\Program Files\Validata\VDCSP\vdcspe.dll
+C:\Program Files\Validata\VDCSP\vdkdevs.dll
+C:\Program Files\Validata\VDCSP\vdkeys02.dll
+C:\Program Files\Validata\VDCSP\vdkeys11.dll
+C:\Program Files\Validata\VDCSP\vdkeys52.dll
+C:\Program Files\Validata\VDCSP\vdkeys61.dll
+C:\Program Files\Validata\VDCSP\vdrand01.dll
+C:\Program Files (x86)\Validata\VDCSP\etsdk.dll
+C:\Program Files (x86)\Validata\VDCSP\hashfile.exe
+C:\Program Files (x86)\Validata\VDCSP\testcsp.exe
+C:\Program Files (x86)\Validata\VDCSP\vdcsp.dll
+C:\Program Files (x86)\Validata\VDCSP\vdcsp_cfg.exe
+C:\Program Files (x86)\Validata\VDCSP\vdcspe.dll
+C:\Program Files (x86)\Validata\VDCSP\vdkdevs.dll
+C:\Program Files (x86)\Validata\VDCSP\vdkeys02.dll
+C:\Program Files (x86)\Validata\VDCSP\vdkeys11.dll
+C:\Program Files (x86)\Validata\VDCSP\vdkeys52.dll
+C:\Program Files (x86)\Validata\VDCSP\vdkeys61.dll
+C:\Program Files (x86)\Validata\VDCSP\vdrand01.dll
+C:\uarm3\bin\rcmnSec.dll
+C:\uarm3\bin\uarm.exe
+C:\uarm3\bin\uarmCfg.dll
+C:\uarm3\bin\uarmCommon.Tools.dll
+C:\uarm3\bin\uarmCommon.UI.dll
+C:\uarm3\bin\uarmCore.dll
+C:\uarm3\bin\uarmLog.dll
+C:\uarm3\bin\uarmLog.UI.dll
+C:\uarm3\bin\uarmMon.dll
+C:\uarm3\bin\uarmStg.dll
+C:\uarm3\bin\uarmUsr.dll
+C:\amur3\bin\rcmnSec.dll
+C:\amur3\bin\amur.exe
+C:\amur3\bin\uarmCfg.dll
+C:\amur3\bin\uarmCommon.Tools.dll
+C:\amur3\bin\uarmCommon.UI.dll
+C:\amur3\bin\uarmCore.dll
+C:\amur3\bin\uarmLog.dll
+C:\amur3\bin\uarmLog.UI.dll
+C:\amur3\bin\uarmMon.dll
+C:\amur3\bin\uarmStg.dll
+C:\amur3\bin\uarmUsr.dll
