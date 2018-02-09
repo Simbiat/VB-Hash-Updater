@@ -1,0 +1,332 @@
+<meta http-equiv="content-type" content="text/html; charset=cp866" />
+
+<html>
+  <head>
+    <title>Universal UARM - Hash updater</title>
+    <script language="JavaScript">
+      function SortVBArray(arrVBArray, desc) {
+        newdb = arrVBArray.split("[dbmerg2]");
+        if (desc == 1) {
+          return newdb.sort().join('\b');
+        } else {
+          return newdb.sort().reverse().join('\b');
+        }
+      }
+    </script>
+  <script language="vbscript">
+
+'*****************************************************************************************************
+' Declarations
+'*****************************************************************************************************
+
+Option explicit
+Public AllowedUsers,logFile,logFile2
+Public adminuser,hashfileexe,hashinfile,hashoutfile
+Public objFSO,curstatus,hashfail,objnet,oShell,PathToLogs
+Public datedfolder,inlogFile,outlogFile,Configs,mappingPath,commWs
+Public errflg, curuserl
+Public logfilearr, logproc
+Public hashlistshort, hashlistfull, prochashes, systhashes
+Set oShell = CreateObject("WScript.Shell")
+Set objNet = CreateObject("WScript.Network")
+Set objFSO = CreateObject("Scripting.FileSystemObject")
+curuserl = objnet.UserDomain & "\" & objnet.UserName
+public radbutact
+radbutact = ""
+logfilearr=Array(1)
+Dim inipath, Root_Server
+Root_Server = "\\root_server"
+inipath = Root_Server & "\hta.cfg"
+
+'*****************************************************************************************************
+' Users
+'*****************************************************************************************************
+
+adminuser = ReadIni("Users", "Admin")
+AllowedUsers=Array(adminuser)
+
+'*****************************************************************************************************
+' Paths
+'*****************************************************************************************************
+
+logproc = ReadIni("Paths", "HTA_Log")
+hashfileexe = ReadIni("Files", "hashfileexe")
+hashinfile = ReadIni("Files", "hashinfile")
+hashoutfile = ReadIni("Files", "hashoutfile")
+hashlistshort = ReadIni("Files", "hashlistshort")
+hashlistfull = ReadIni("Files", "hashlistfull")
+prochashes = ReadIni("Files", "prochashes") & objNet.ComputerName & ".txt"
+systhashes = ReadIni("Files", "systhashes") & objNet.ComputerName & ".txt"
+
+'*****************************************************************************************************
+' Functions
+'*****************************************************************************************************
+'%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+' INI reader
+'%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Function ReadIni(mySection, myKey)
+  ' This function returns a value read from an INI file
+  '
+  ' Arguments:
+  ' mySection [string] the section in the INI file to be searched
+  ' myKey [string] the key whose value is to be returned
+  '
+  ' Returns:
+  ' the [string] value for the specified key in the specified section
+  Dim intEqualPos
+  Dim objIniFile
+  Dim strFilePath, strKey, strLeftString, strLine, strSection
+  Set objFSO = CreateObject( "Scripting.FileSystemObject" )
+  ReadIni = ""
+  strFilePath = Trim( inipath )
+  strSection = Trim( mySection )
+  strKey = Trim( myKey )
+  If objFSO.FileExists( strFilePath ) Then
+    Set objIniFile = objFSO.OpenTextFile( strFilePath, 1, False )
+    Do While objIniFile.AtEndOfStream = False
+      strLine = Trim( objIniFile.ReadLine )
+      ' Check if section is found in the current line
+      If LCase( strLine ) = "[" & LCase( strSection ) & "]" Then
+        strLine = Trim( objIniFile.ReadLine )
+        ' Parse lines until the next section is reached
+        Do While Left( strLine, 1 ) <> "["
+          ' Find position of equal sign in the line
+          intEqualPos = InStr( 1, strLine, "=", 1 )
+          If intEqualPos > 0 Then
+            strLeftString = Trim( Left( strLine, intEqualPos - 1 ) )
+            ' Check if item is found in the current line
+            If LCase( strLeftString ) = LCase( strKey ) Then
+              ReadIni = Trim( Mid( strLine, intEqualPos + 1 ) )
+              ' Abort loop when item is found
+              Exit Do
+            End If
+          End If
+          ' Abort if the end of the INI file is reached
+          If objIniFile.AtEndOfStream Then Exit Do
+          ' Continue with next line
+          strLine = Trim( objIniFile.ReadLine )
+        Loop
+        Exit Do
+      End If
+    Loop
+    objIniFile.Close
+  Else
+    ReadIni = ""
+  End If
+End Function
+
+'%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+' User check
+'%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Function UserCheck(Somestring)
+  Dim iLoop, bolFound
+  bolFound = False
+
+  For iLoop = LBound(AllowedUsers) to UBound(AllowedUsers)
+    If CStr(AllowedUsers(iLoop)) = CStr(SomeString) then
+      bolFound = True
+      Exit For
+    End If
+  Next
+  if bolFound=False Then
+    msgbox "Script is being run under non-allowed user!" & vbCRLF & "Script will exit!", 16, "Wrong user!"
+    window.close
+  End if
+
+End Function
+
+'%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+' Hash update
+'%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function hashupdate(hashlist, hashtoup)
+  dim failedfiles, itterh, flog, strnextline, infile, check, flog2, hashline, flog3
+  failedfiles = ""
+  itterh = 1
+  if objFSO.fileexists(hashtoup) Then
+    objFSO.DeleteFile hashtoup,1
+  end if
+  Set fLog=objFSO.openTextfile(hashlist)
+  Do Until fLog.AtEndOfStream
+    strNextLine = fLog.Readline
+    if Len(strNextLine)>0 then
+      if objFSO.fileexists(strNextLine) Then
+        statusbar.value = "Hashing " & strNextLine
+        set inFile=objFSO.CreateTextfile(hashinfile,true)
+        inFile.WriteLine strNextLine
+        inFile.Close
+        check=oShell.Run(hashfileexe & " -F " & hashinfile & " " & hashoutfile, 0, True)
+        if check=0 then
+          objFSO.DeleteFile hashinfile,1
+          Set fLog2=objFSO.openTextfile(hashoutfile, 1, false, 0)
+          hashline = fLog2.readline & ","
+          hashline = hashline & fLog2.readline
+          flog2.close
+          objFSO.DeleteFile hashoutfile,1
+          set fLog3=objFSO.openTextfile(hashtoup, 8, true, 0)
+          flog3.writeline hashline
+          flog3.close
+          call writeinfile (logproc & Year(Now()) & Right("0" &Month(Now()),2) & Right("0" & Day(Now()), 2) & ".log", "[HashOK ] [" & Right("00" & Hour(time()), 2) & ":" & Right("00" & Minute(time()), 2) & ":" & Right("00" & Second(time()), 2) & ":" & Right("0" & replace(cstr(timer * 100), ",", "0"), "2") & "] [" & objNet.ComputerName & "] [" & curuserl & "] " & strNextLine & " successfully hashed", strNextLine & " successfully hashed", 8, 0)
+        Else
+          call writeinfile (logproc & Year(Now()) & Right("0" &Month(Now()),2) & Right("0" & Day(Now()), 2) & ".log", "[HashErr] [" & Right("00" & Hour(time()), 2) & ":" & Right("00" & Minute(time()), 2) & ":" & Right("00" & Second(time()), 2) & ":" & Right("0" & replace(cstr(timer * 100), ",", "0"), "2") & "] [" & objNet.ComputerName & "] [" & curuserl & "] " & strNextLine & " failed to get hashed", strNextLine & " failed to get hashed", 8, 0)
+          If (itterh Mod 2) = 0 Then
+            failedfiles = failedfiles & strNextLine & vbcrlf
+          else
+            failedfiles = failedfiles & strNextLine & "; "
+          end if
+          itterh = itterh + 1
+        End if
+      else
+        call writeinfile (logproc & Year(Now()) & Right("0" &Month(Now()),2) & Right("0" & Day(Now()), 2) & ".log", "[HashWar] [" & Right("00" & Hour(time()), 2) & ":" & Right("00" & Minute(time()), 2) & ":" & Right("00" & Second(time()), 2) & ":" & Right("0" & replace(cstr(timer * 100), ",", "0"), "2") & "] [" & objNet.ComputerName & "] [" & curuserl & "] " & strNextLine & " was not found", strNextLine & " was not found", 8, 0)
+      End if
+    End If
+  Loop
+  fLog.close
+  if failedfiles = "" then
+    hashupdate=true
+  else
+    msgbox "Following files failed to get hashed! Note, that list may be incomplete. For complete list refer to log (HashErr and HashWar message types)" & vbcrlf & vbcrlf & failedfiles, vbCritical, "Error"
+    hashupdate=false
+  end if
+end function
+
+'%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+' Writing to file
+'%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Function writeinfile(logfile, logline, gui, append, msgtype)
+  On Error Resume Next
+  If cstr(gui) = "1" Then
+    statusbar.value = logline
+  elseif cstr(gui) = "0" Then
+    'Do Nothing
+  else
+    statusbar.value = gui
+  End if
+  On Error GoTo 0
+  dim flog
+  Set fLog=objFSO.openTextfile(logfile, append, true)
+  fLog.WriteLine logline
+  fLog.close
+  On Error Resume Next
+  if cstr(gui) <> "0" Then
+    if msgtype = 1 Then
+      msgbox statusbar.value, vbOKOnly+vbInformation, "Info"
+    elseif msgtype = 2 Then
+      msgbox statusbar.value, vbOKOnly+vbExclamation, "Warning"
+    elseif msgtype = 3 Then
+      msgbox statusbar.value, vbOKOnly+vbCritical, "Error"
+    End if
+  End if
+  On Error GoTo 0
+End Function
+
+'*****************************************************************************************************
+' GUI drawing / Start page
+'*****************************************************************************************************
+
+Function CreateStartPage()
+  dim i,HTML
+  HTML = "<TABLE cellSpacing=0 cellPadding=7 style=""border: ridge 3px"" id = 'tbl'><tr><td unselectable='on' onselectstart='return false;' onmousedown='return false;' colspan=2><center><h2>Launcher v4.0<br>Hash updater</h2></center></td></tr>"
+  HTML = HTML & "<tr><td colspan=2><center><input style=""background=#F8F8FF;"" type=""text"" name=""statusbar"" id=""statusbar"" size=""125%"" value=""Idle..."" readonly></center>"
+  HTML = HTML & "</td></tr></table>"
+  astra_page.innerHTML = HTML
+End Function
+
+'*****************************************************************************************************
+' Onload operations
+'*****************************************************************************************************
+
+On Error Resume Next
+dim objWMISvc, colItems, objItem
+Set objWMISvc = GetObject( "winmgmts:\\.\root\cimv2" )
+Set colItems = objWMISvc.ExecQuery( "Select * from Win32_ComputerSystem", , 48 )
+For Each objItem in colItems
+  userCurrent = objItem.UserName
+  call writeinfile (HTA_Log & dateyyymmdd() & ".log", "[Info ]" & logstartline() & "Launcher launched with " & objItem.UserName & " as Windows' user", 0, ForAppending, 0)
+Next
+Dim objService, Process, Process2, Process3, strNameOfUser, Return, iLoop, processtokill
+call writeinfile (HTA_Log & dateyyymmdd() & ".log", "[Info ]" & logstartline() & "Launcher launched with " & objnet.UserDomain & "\" & objnet.UserName & " as active user", 0, ForAppending, 0)
+set objService = getobject("winmgmts:")
+call writeinfile (HTA_Log & dateyyymmdd() & ".log", "[Info ]" & logstartline() & "Checking for killable parent processes...", 0, ForAppending, 0)
+for each Process in objService.InstancesOf("Win32_process")
+  If Process.name = "mshta.exe" Then
+    Return = Process.GetOwner(strNameOfUser)
+    if return = 0 Then
+      For iLoop = LBound(AllowedUsers) to UBound(AllowedUsers)
+        If CStr(AllowedUsers(iLoop)) = CStr(strNameOfUser) then
+          processtokill=Process.ParentProcessid
+          Exit For
+        End If
+      Next
+    End if
+    for each Process2 in objService.InstancesOf("Win32_process")
+      If Process2.ProcessId = processtokill And Process2.Name = "cmd.exe" Then
+        call writeinfile (HTA_Log & dateyyymmdd() & ".log", "[Action ]" & logstartline() & "Killing " & Process2.Name & " with ID=" & Process2.ProcessId, 0, ForAppending, 0)
+        Process2.Terminate
+        call writeinfile (HTA_Log & dateyyymmdd() & ".log", "[OK ]" & logstartline() & "Kill confirmed for " & Process2.Name & " with ID=" & Process2.ProcessId, 0, ForAppending, 0)
+        exit for
+      End if
+    next
+  End If
+Next
+On Error Goto 0
+call writeinfile (logproc & Year(Now()) & Right("0" &Month(Now()),2) & Right("0" & Day(Now()), 2) & ".log", "[Info ] [" & Right("00" & Hour(time()), 2) & ":" & Right("00" & Minute(time()), 2) & ":" & Right("00" & Second(time()), 2) & ":" & Right("0" & replace(cstr(timer * 100), ",", "0"), "2") & "] [" & objNet.ComputerName & "] [" & curuserl & "] Checking user...", 0, 8, 0)
+UserCheck(objnet.UserName)
+call writeinfile (logproc & Year(Now()) & Right("0" &Month(Now()),2) & Right("0" & Day(Now()), 2) & ".log", "[Info ] [" & Right("00" & Hour(time()), 2) & ":" & Right("00" & Minute(time()), 2) & ":" & Right("00" & Second(time()), 2) & ":" & Right("0" & replace(cstr(timer * 100), ",", "0"), "2") & "] [" & objNet.ComputerName & "] [" & curuserl & "] Checking workstation...", 0, 8, 0)
+
+'*****************************************************************************************************
+' End of scripts, start of HTML code
+'*****************************************************************************************************
+</script>
+
+<style>
+body {
+font: 10pt Tahoma;
+color: #000000;
+background-color:#e4eae4;
+-webkit-touch-callout: none;
+-webkit-user-select: none;
+-khtml-user-select: none;
+-moz-user-select: none;
+-ms-user-select: none;
+user-select: none;
+cursor: default;
+}
+table {
+font: 10pt Tahoma;
+color: #000000;
+background-color:#e4eae4;
+}
+INPUT {
+font: 10pt Tahoma;
+color:#000000;
+}
+</style>
+
+<HTA:APPLICATION ID="noApp" APPLICATIONNAME="Launcher" BORDER="thin" CAPTION="yes" ICON="app.ico"
+SHOWINTASKBAR="yes" SINGLEINSTANCE="yes" SYSMENU="yes" WINDOWSTATE="normal" SCROLL="yes" SCROLLFLAT="no"
+VERSION="4.0" INNERBORDER="yes" SELECTION="yes" MAXIMIZEBUTTON="no" MINIMIZEBUTTON="no" NAVIGABLE="no"
+CONTEXTMENU="no" BORDERSTYLE="normal">
+</head>
+
+<body onkeydown="cobswitch()">
+  <center><div id = "astra_page" name = "astra_page"></div></center>
+  <script language = "vbscript" >
+    CreateStartPage()
+    Dim content
+    Set content = document.getElementById("tbl")
+    window.resizeTo content.offsetWidth * 1.1, content.offsetHeight + 75
+    call hashupdate(hashlistshort, prochashes)
+    call hashupdate(hashlistfull, systhashes)
+    if objFSO.fileexists(prochashes) and objFSO.fileexists(systhashes) Then
+      call writeinfile (logproc & Year(Now()) & Right("0" &Month(Now()),2) & Right("0" & Day(Now()), 2) & ".log", "[OK ] [" & Right("00" & Hour(time()), 2) & ":" & Right("00" & Minute(time()), 2) & ":" & Right("00" & Second(time()), 2) & ":" & Right("0" & replace(cstr(timer * 100), ",", "0"), "2") & "] [" & objNet.ComputerName & "] [" & curuserl & "] Hash update completed", "Hash update successful!", 8, 1)
+    else
+      call writeinfile (logproc & Year(Now()) & Right("0" &Month(Now()),2) & Right("0" & Day(Now()), 2) & ".log", "[Warning] [" & Right("00" & Hour(time()), 2) & ":" & Right("00" & Minute(time()), 2) & ":" & Right("00" & Second(time()), 2) & ":" & Right("0" & replace(cstr(timer * 100), ",", "0"), "2") & "] [" & objNet.ComputerName & "] [" & curuserl & "] Hash update completed", "Some hash-lists were not created during update! Refer to logs!", 8, 2)
+    end if
+    window.close
+  </script>
+  </body>
+</html>
